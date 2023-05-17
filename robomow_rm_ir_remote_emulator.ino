@@ -2,11 +2,12 @@
 
 #define IR_OUTPUT 3
 
-#define BIT_LEN_H 1000
-#define BIT_LEN_L 500
+#define BIT_LEN_H     1000
+#define BIT_LEN_L     500
+#define DEFAULT_BODY  0xAAAAAA
 
-static uint8_t incomingByte = 0;
 static bool irState = false;
+static uint32_t body = DEFAULT_BODY;
 
 /*
  * If oscOn = true, then delivers a X kHz 50% duty cycle signal on OC2B (pin 3), otherwise 3 held low
@@ -39,11 +40,17 @@ void sendDataBits(uint32_t data, uint8_t bits) {
   }
 }
 
-void receiveSerialCommand() {
+uint8_t receiveSerialCommand() {
+  uint8_t incomingByte = 0;
   while (Serial.available() > 0) {
     incomingByte = Serial.read();
     Serial.write(incomingByte);
   }
+  return incomingByte;
+}
+
+uint32_t generateBodyFromSerialCommand(uint32_t prevBody) {
+  
 }
 
 void setup() {
@@ -58,29 +65,30 @@ void setup() {
 }
 
 void loop() {
-  receiveSerialCommand();
-    
-  uint32_t header = 0x5A5;
-  uint32_t body = 0xAAAAAA;
+  uint8_t incomingByte = receiveSerialCommand();
 
-  if (incomingByte == '1')
-    body = 0x5AAAAA; // safety
-  else if (incomingByte == '2')
-    body = 0xA5AAAA; // mow
-  else if (incomingByte == '3')
-    body = 0xAA5AAA; // left
-  else if (incomingByte == '4')
-    body = 0xAAA5AA; // backward
-  else if (incomingByte == '5')
-    body = 0xAAAA5A; // right
-  else if (incomingByte == '6')
-    body = 0xAAAAA5; // forward
+  if (incomingByte == '1') {
+    body ^= 0xF00000; // safety
+  } else if (incomingByte == '2') {
+    body ^= 0x0F0000; // mow
+  } else if (incomingByte == '3') {
+    body ^= 0x00F000; // left
+  } else if (incomingByte == '4') {
+    body ^= 0x000F00; // backward
+  } else if (incomingByte == '5') {
+    body ^= 0x0000F0; // right
+  } else if (incomingByte == '6') {
+    body ^= 0x00000F; // forward
+  } else if (incomingByte == '0') {
+    body = DEFAULT_BODY; // reset to default
+  }
 
   // preamble
   toggleSignalLevel();
   delay(12);
   toggleSignalLevel();
   // header
+  uint32_t header = 0x5A5;
   sendDataBits(header, 12);
   // body
   sendDataBits(body, 23);
