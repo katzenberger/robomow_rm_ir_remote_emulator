@@ -2,8 +2,8 @@
 
 #define IR_OUTPUT 3
 
-#define BIT_LEN_H 900
-#define BIT_LEN_L 670
+#define BIT_LEN_H 1000
+#define BIT_LEN_L 500
 
 static uint8_t incomingByte = 0;
 static bool irState = false;
@@ -64,17 +64,17 @@ void loop() {
   uint32_t body = 0xAAAAAA;
 
   if (incomingByte == '1')
-    body = 0x5AAAAA;
+    body = 0x5AAAAA; // safety
   else if (incomingByte == '2')
-    body = 0xA5AAAA;
+    body = 0xA5AAAA; // mow
   else if (incomingByte == '3')
-    body = 0xAA5AAA;
+    body = 0xAA5AAA; // left
   else if (incomingByte == '4')
-    body = 0xAAA5AA;
+    body = 0xAAA5AA; // backward
   else if (incomingByte == '5')
-    body = 0xAAAA5A;
+    body = 0xAAAA5A; // right
   else if (incomingByte == '6')
-    body = 0xAAAAA5;
+    body = 0xAAAAA5; // forward
 
   // preamble
   toggleSignalLevel();
