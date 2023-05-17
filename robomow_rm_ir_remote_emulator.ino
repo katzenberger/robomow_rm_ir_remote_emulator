@@ -24,9 +24,8 @@ void modulateCarrier(bool oscOn)
 }
 
 void toggleSignalLevel() {
-  //digitalWrite(IR_OUTPUT, irState);
-  modulateCarrier(irState);
   irState = !irState;
+  modulateCarrier(irState);
 }
 
 void sendDataBits(uint32_t data, uint8_t bits) {
