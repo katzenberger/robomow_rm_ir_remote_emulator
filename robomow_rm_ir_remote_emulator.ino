@@ -8,9 +8,25 @@
 static uint8_t incomingByte = 0;
 static bool irState = false;
 
-void changeSignalEdge() {
-    digitalWrite(IR_OUTPUT, irState);
-    irState = !irState;
+/*
+ * If oscOn = true, then delivers a X kHz 50% duty cycle signal on OC2B (pin 3), otherwise 3 held low
+ */
+void modulateCarrier(bool oscOn)
+{
+  if (oscOn) {
+    // switch on carrier
+    TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20); //  Mode 7 (fast PWM),  Output to pin 3 (OC2B)
+  } else {
+    // switch off carrier
+    TCCR2A = 0;
+    digitalWrite(IR_OUTPUT, LOW); // ensure pin is not left HIGH
+  }
+}
+
+void toggleSignalLevel() {
+  //digitalWrite(IR_OUTPUT, irState);
+  modulateCarrier(irState);
+  irState = !irState;
 }
 
 void sendDataBits(uint32_t data, uint8_t bits) {
@@ -20,7 +36,7 @@ void sendDataBits(uint32_t data, uint8_t bits) {
     } else {
       delayMicroseconds(BIT_LEN_L);
     }
-    changeSignalEdge();
+    toggleSignalLevel();
   }
 }
 
@@ -33,6 +49,12 @@ void receiveSerialCommand() {
 
 void setup() {
   pinMode(IR_OUTPUT, OUTPUT);
+
+  // Controls timer2. Initial configuration with prescaler 1:8
+  TCCR2B = _BV(WGM22) | _BV(CS21);
+  OCR2A = ((F_CPU / 1000000L)  * 55) / 17;  // 38.4kHz
+  OCR2B = OCR2A / 2;  // 50% duty cycle
+
   Serial.begin(115200);
 }
 
@@ -56,16 +78,16 @@ void loop() {
     body = 0xAAAAA5;
 
   // preamble
-  changeSignalEdge();
+  toggleSignalLevel();
   delay(12);
-  changeSignalEdge();
+  toggleSignalLevel();
   // header
   sendDataBits(header, 12);
   // body
   sendDataBits(body, 23);
   // close
   delay(13);
-  changeSignalEdge();
+  toggleSignalLevel();
 
   delay(100);
 }
